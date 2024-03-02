@@ -1,0 +1,5 @@
+# Simulation specific files to ignore
+sim/work
+sim/vsim.wlf
+sim/transcript
+
