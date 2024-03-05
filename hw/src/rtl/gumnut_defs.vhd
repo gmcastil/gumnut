@@ -7,7 +7,7 @@ package gumnut_defs is
     constant IMEM_ADDR_WIDTH        : positive      := 12;
     constant IMEM_SIZE              : positive      := 2 ** IMEM_ADDR_WIDTH;
 
-    subtype imem_addr_t is unsigned(IMEM_ADDR_WIDTH - 1 downto 0)
+    subtype imem_addr_t is unsigned(IMEM_ADDR_WIDTH - 1 downto 0);
 
     subtype instr_t is unsigned(17 downto 0);
     type instr_a is array (natural range <>) of instr_t;
@@ -15,8 +15,8 @@ package gumnut_defs is
     -- of addressable instructions
     subtype imem_a is instr_a(0 to IMEM_SIZE - 1);
 
-    constant DMEM_ADDR_WIDTH        : positive      : 8;
-    constant DMEM_SIZE              : positive      : 2 ** DMEM_ADDR_WIDTH;
+    constant DMEM_ADDR_WIDTH        : positive      := 8;
+    constant DMEM_SIZE              : positive      := 2 ** DMEM_ADDR_WIDTH;
 
     subtype uint8b_t is unsigned(7 downto 0);
     type uint8b_a is array (natural range <>) of uint8b_t;
@@ -79,7 +79,7 @@ package gumnut_defs is
 
     -- Probably for a simulation?
     subtype disassembled_instr is string(1 to 30);
-    procedure disassemble( instruction : instr_t; result : out disassembled_instr )
+    procedure disassemble( instruction : instr_t; result : out disassembled_instr );
 
 end package gumnut_defs;
 
@@ -206,9 +206,15 @@ package body gumnut_defs is
                 -- These do some string operations that make me rather uncomfortable
                 result(index to index + 3) := "(r )";
                 disassemble_reg(r, index + 2);
-                result(index + 4 to (index + 4 + signed_str'length - 1) := signed_str;
+                result(index + 4 to (index + 4 + signed_str'length - 1)) := signed_str;
             end if;
         end procedure disassemble_effective_addr;
+
+    begin
+
+    end procedure disassemble;
+
+end package body gumnut_defs;
 
 
 
