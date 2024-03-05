@@ -1,4 +1,4 @@
 .PHONY:
 lint:
-	ghdl -a gumnut_defs.vhd
+	ghdl -a --std=08 --ieee=standard gumnut_defs.vhd
 

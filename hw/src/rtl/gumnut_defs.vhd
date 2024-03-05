@@ -79,62 +79,62 @@ package gumnut_defs is
 
     -- Probably for a simulation?
     subtype disassembled_instr is string(1 to 30);
-    procedure disassemble( instruction : instr_t; result : out disassembled_instr );
+    procedure disassemble( instr : instr_t; result : out disassembled_instr );
 
 end package gumnut_defs;
 
 package body gumnut_defs is
 
-    procedure disassemble( instruction : instr_t; result : out disassembled_instr ) is
+    procedure disassemble( instr : instr_t; result : out disassembled_instr ) is
 
         subtype name_t is string(1 to 4);
         type name_a is array (natural range <>) of name_t;
 
         constant ALU_NAME_TABLE     : name_a(0 to 7)    :=
         (
-            0 => "ADD",
+            0 => "ADD ",
             1 => "ADDC",
-            2 => "SUB",
+            2 => "SUB ",
             3 => "SUBC",
-            4 => "AND",
-            5 => "OR",
-            6 => "XOR",
+            4 => "AND ",
+            5 => " OR ",
+            6 => "XOR ",
             7 => "MASK"
         );
 
         constant SHIFT_NAME_TABLE   : name_a(0 to 3)    :=
         (
-            0 => "SHL",
-            1 => "SHR",
-            2 => "ROL",
-            3 => "ROR"
+            0 => "SHL ",
+            1 => "SHR ",
+            2 => "ROL ",
+            3 => "ROR "
         );
 
         constant MEM_NAME_TABLE     : name_a(0 to 3)    :=
         (
-            0 => "LDM",
-            1 => "STM",
-            2 => "INP",
-            3 => "OUT"
+            0 => "LDM ",
+            1 => "STM ",
+            2 => "INP ",
+            3 => "OUT "
         );
             
         constant BRANCH_NAME_TABLE  : name_a(0 to 3)    :=
         (
-            0 => "BZ",
-            1 => "BNC",
-            2 => "BC",
-            3 => "BNC"
+            0 => " BZ ",
+            1 => "BNC ",
+            2 => " BC ",
+            3 => "BNC "
         );
 
         constant JUMP_NAME_TABLE    : name_a(0 to 1)    :=
         (
-            0 => "JMP",
-            1 => "JSB"
+            0 => "JMP ",
+            1 => "JSB "
         );
 
         constant MISC_NAME_TABLE    : name_a(0 to 7)    :=
         (
-            0 => "RET",
+            0 => "RET ",
             1 => "RETI",
             2 => "ENAI",
             3 => "DISI",
@@ -145,7 +145,7 @@ package body gumnut_defs is
         );
 
         -- Strip the strength from the instruction to make disassembling easier
-        variable instr_01           : instr_t       := to_01(instruction);
+        variable instr_01           : instr_t       := to_01(instr);
         -- Alias the `fn` field from an instruction
         alias instr_alu_reg_fn      : alu_fn_code_t is instr_01(2 downto 0);
         alias instr_alu_immed_fn    : alu_fn_code_t is instr_01(16 downto 14);
@@ -171,7 +171,7 @@ package body gumnut_defs is
         -- Sub-procedure to disassemble a register number and store the result
         -- as a single character at a position
         procedure disassemble_reg( reg : reg_addr_t; index : positive ) is
-            variable str            : string := to_string(to_integer(reg));
+            constant str            : string := to_string(to_integer(reg));
         begin
             result(index) := str(str'left);
         end procedure disassemble_reg;
@@ -179,7 +179,7 @@ package body gumnut_defs is
         -- Sub-procedure to disassemble an unsigned value and store the result
         -- as an embedded string
         procedure disassemble_unsigned( n : unsigned; index : positive ) is
-            variable str            : string := to_string(to_integer(n));
+            constant str            : string := to_string(to_integer(n));
         begin
             result(index to (index + str'length - 1)) := str;
         end procedure disassemble_unsigned;
@@ -188,7 +188,7 @@ package body gumnut_defs is
         -- as an embedded string (this is a degenerate case and could have just duplicated
         -- the other procedure and used a cast, but that would be silly.
         procedure disassemble_signed( n : signed; index : positive ) is
-            variable str            : string := to_string(to_integer(n));
+            constant str            : string := to_string(to_integer(n));
         begin
             result(index to (index + str'length - 1)) := str;
         end procedure disassemble_signed;
@@ -197,8 +197,8 @@ package body gumnut_defs is
         procedure disassemble_effective_addr(
                     r : reg_addr_t; d : offset_t; index : positive ) is
             -- I supposed this is necessary since offsets are unsigned
-            variable signed_str     : string    := to_string(to_integer(signed(d)));
-            variable unsigned_str   : string    := to_string(to_integer(d));
+            constant signed_str     : string    := to_string(to_integer(signed(d)));
+            constant unsigned_str   : string    := to_string(to_integer(d));
         begin
             if r = 0 then
                 result(index to index + unsigned_str'length - 1) := unsigned_str;
@@ -212,6 +212,54 @@ package body gumnut_defs is
 
     begin
 
+        if is_X(instr) then
+            report "ERROR: Cannot disassemble metalogical value in instruction" severity error;
+            result := (others=>'X');
+            return;
+        end if;
+        result := (others=>' ');
+
+        if instr_01(17) = '0' then
+            -- Arithmetic / logical immediate
+            result(1 to name_t'length) := ALU_NAME_TABLE(to_integer(instr_alu_immed_fn));
+            result(name_t'length + 2 to name_t'length + 8) := "R , R ,";
+            disassemble_reg(instr_rd, name_t'length + 3);
+            disassemble_reg(instr_rs, name_t'length + 7);
+            disassemble_unsigned(instr_immed, name_t'length + 10);
+        elsif instr_01(16) = '0' then
+            -- Memory I/O
+            result(1 to name_t'length) := MEM_NAME_TABLE(to_integer(instr_mem_fn));
+            result(name_t'length + 2 to name_t'length + 4) := "R ,";
+            disassemble_reg(instr_rd, name_t'length + 3);
+            disassemble_effective_addr(instr_rs, instr_offset, name_t'length + 6);
+        elsif instr_01(15) = '0' then
+            -- Shift
+            result(1 to name_t'length) := SHIFT_NAME_TABLE(to_integer(instr_shift_fn));
+            result(name_t'length + 2 to name_t'length + 8) := "R , R ,";
+            disassemble_reg(instr_rd, name_t'length + 3);
+            disassemble_reg(instr_rs, name_t'length + 7);
+            disassemble_unsigned(instr_immed, name_t'length + 10);
+        elsif instr_01(14) = '0' then
+            -- Arithmetic / logical register
+            result(1 to name_t'length) := ALU_NAME_TABLE(to_integer(instr_alu_reg_fn));
+            result(name_t'length + 2 to name_t'length + 10) := "R , R , R";
+            disassemble_reg(instr_rd, name_t'length + 3);
+            disassemble_reg(instr_rs, name_t'length + 7);
+            disassemble_reg(instr_r2, name_t'length + 11);
+        elsif instr_01(13) = '0' then
+            -- Jump
+            result(1 to name_t'length) := JUMP_NAME_TABLE(to_integer(instr_jump_fn));
+            disassemble_unsigned(instr_addr, name_t'length + 2);
+        elsif instr_01(12) = '0' then
+            -- Branch
+            result(1 to name_t'length) := BRANCH_NAME_TABLE(to_integer(instr_branch_fn));
+            disassemble_signed(signed(instr_disp), name_t'length + 2);
+        elsif instr_01(11) = '0' then
+            -- Miscellaneous
+            result(1 to name_t'length) := MISC_NAME_TABLE(to_integer(instr_misc_fn));
+        else
+            result(1 to 19) := "Illegal Instruction";
+        end if;
     end procedure disassemble;
 
 end package body gumnut_defs;

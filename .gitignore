@@ -3,3 +3,6 @@ sim/work
 sim/vsim.wlf
 sim/transcript
 
+# Ignore some GHDL artifacts
+work-obj*.cf
+
